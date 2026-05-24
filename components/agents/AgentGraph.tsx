@@ -1,87 +1,109 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 /**
- * Interactive orchestrator graph.
+ * Triage Agent live workflow panel.
  *
- * SVG viewBox is 130×100 (1.3:1) — matches the panel's intended aspect ratio
- * so nothing stretches. Click a sub-agent node to dispatch its scenario;
- * click the orchestrator to run all three.
+ * Replaces the old orchestrator + 3 sub-agents SVG graph. The panel now
+ * visualizes the actual triage flow — ticket → orchestrator → qa(reproduce)
+ * → dev(fix) → qa(verify) → review → pr·comment — and lets the viewer
+ * dispatch a Jira or Linear ticket scenario to see it animate end-to-end.
  */
 
-interface AgentNode {
+interface Stage {
   id: string;
+  role: string;
   label: string;
-  scope: string;
-  x: number;
-  y: number;
+  sub: string;
+  tag: string;
 }
 
-interface LogLine {
-  t: "input" | "route" | "work" | "ok" | "head";
-  text: string;
-  from: string;
-}
-
-const AGENTS: AgentNode[] = [
-  { id: "a1", label: "sub_agent_1", scope: "reconciliation", x: 22, y: 74 },
-  { id: "a2", label: "sub_agent_2", scope: "runbook exec",   x: 65, y: 86 },
-  { id: "a3", label: "sub_agent_3", scope: "load + routing", x: 108, y: 74 },
+const STAGES: Stage[] = [
+  { id: "ticket", role: "input",  label: "ticket",       sub: "fetch",          tag: "" },
+  { id: "orch",   role: "router", label: "orchestrator", sub: "auto-route",     tag: "claude · MCP" },
+  { id: "qa1",    role: "agent",  label: "qa",           sub: "reproduce bug",  tag: "no write/push" },
+  { id: "dev",    role: "agent",  label: "dev",          sub: "fix · branch",   tag: "write + push" },
+  { id: "qa2",    role: "agent",  label: "qa",           sub: "verify fix",     tag: "qa on live app" },
+  { id: "review", role: "agent",  label: "review",       sub: "read pr",        tag: "no write" },
+  { id: "pr",     role: "output", label: "pr · comment", sub: "→ ticket",       tag: "" },
 ];
-const ORCH: AgentNode = { id: "orch", label: "orchestrator", scope: "", x: 65, y: 24 };
 
-const SCENARIOS: Record<string, LogLine[]> = {
-  a1: [
-    { from: "user", t: "input", text: "[user] reconcile entry #84122" },
-    { from: "orch", t: "route", text: "→ route → sub_agent_1" },
-    { from: "a1",   t: "work",  text: "sub_agent_1.scan(84122)" },
-    { from: "a1",   t: "work",  text: "  ↳ 1 candidate found" },
-    { from: "a1",   t: "ok",    text: "✓ sub_agent_1.resolve() ok" },
-    { from: "orch", t: "ok",    text: "→ orchestrator.respond() ok" },
-  ],
-  a2: [
-    { from: "user", t: "input", text: "[user] run playbook · task_7841" },
-    { from: "orch", t: "route", text: "→ route → sub_agent_2" },
-    { from: "a2",   t: "work",  text: "sub_agent_2.load('task.yaml')" },
-    { from: "a2",   t: "work",  text: "  ↳ step 1/4 · fetch context" },
-    { from: "a2",   t: "work",  text: "  ↳ step 4/4 · synthesize" },
-    { from: "a2",   t: "ok",    text: "✓ sub_agent_2.run() ok" },
-  ],
-  a3: [
-    { from: "user", t: "input", text: "[user] assign worker · LX-2901" },
-    { from: "orch", t: "route", text: "→ route → sub_agent_3" },
-    { from: "a3",   t: "work",  text: "sub_agent_3.candidates(LX-2901)" },
-    { from: "a3",   t: "work",  text: "  ↳ 3 candidates · constraint check" },
-    { from: "a3",   t: "work",  text: "  ↳ assigning · worker #W-4427" },
-    { from: "a3",   t: "ok",    text: "✓ sub_agent_3.assign() ok" },
-  ],
-  all: [
-    { from: "user", t: "input", text: "[user] coordinate task_7841 end-to-end" },
-    { from: "orch", t: "route", text: "→ orchestrator.plan() ↦ [a1, a3]" },
-    { from: "a1",   t: "work",  text: "sub_agent_1.resolve(7841)" },
-    { from: "a1",   t: "ok",    text: "✓ resolved · 2 entries" },
-    { from: "a3",   t: "work",  text: "sub_agent_3.assign(7841)" },
-    { from: "a3",   t: "ok",    text: "✓ assigned · worker #W-4427" },
-    { from: "orch", t: "ok",    text: "✓ orchestrator complete · 1.42s" },
-  ],
+type ScenarioId = "jira" | "linear";
+interface Scenario {
+  ticketKey: string;
+  sourceLabel: string;
+  steps: Array<[number, string]>;
+}
+
+const SCENARIOS: Record<ScenarioId, Scenario> = {
+  jira: {
+    ticketKey: "SKLR-1284",
+    sourceLabel: "JIRA",
+    steps: [
+      [0, "→ orchestrator received SKLR-1284 (jira REST)"],
+      [1, "  orchestrator.classify() → bug · severity: high"],
+      [1, "  routes=[qa, dev, qa, review]"],
+      [2, "  qa.reproduce() · zoekt indexed · 4 repos"],
+      [2, "  ↳ login fast-path · 198ms"],
+      [2, "  ↳ playwright nav /loads/7841 · error reproduced"],
+      [2, "✓ qa → dev · evidence: stack_trace, repro_steps"],
+      [3, "  dev.fetch_context() · 4 files · cross-repo"],
+      [3, "  dev.edit() · src/api/loads.ts · src/lib/validate.ts"],
+      [3, "  dev.test() · 12 passing · branch fix/sklr-1284"],
+      [3, "✓ dev → qa · pr=#4421 · build=green"],
+      [4, "  qa.verify() · target dev :3047"],
+      [4, "  ↳ playwright replay · scenario passes"],
+      [4, "✓ qa → review · verified=true"],
+      [5, "  review.read_pr() · diff +24 -11 · clean"],
+      [5, "✓ review.approve()"],
+      [6, "  orchestrator.comment_back() · jira PR linked"],
+      [6, "✓ session complete · 1m 47s · 89 turns · cache 92%"],
+    ],
+  },
+  linear: {
+    ticketKey: "ENG-42",
+    sourceLabel: "LINEAR",
+    steps: [
+      [0, "→ orchestrator received ENG-42 (linear graphql)"],
+      [1, "  orchestrator.classify() → feature · scope: api"],
+      [1, "  routes=[qa, dev, qa, review]"],
+      [2, "  qa.reproduce() · context fetch from spec"],
+      [2, "✓ qa → dev · acceptance criteria locked"],
+      [3, "  dev.fetch_context() · 6 files"],
+      [3, "  dev.edit() · src/api/agents.ts + tests"],
+      [3, "  dev.test() · 18 tests pass"],
+      [3, "✓ dev → qa · pr=#4422"],
+      [4, "  qa.verify() · all scenarios pass"],
+      [4, "✓ qa → review"],
+      [5, "  review.read_pr() · diff +89 -3 · clean"],
+      [5, "✓ review.approve()"],
+      [6, "  orchestrator.comment_back() · chat reply"],
+      [6, "✓ session complete · 2m 14s · 113 turns"],
+    ],
+  },
 };
 
-const INITIAL_LOG: LogLine[] = [
-  { t: "ok", text: "orchestrator.ready() · 3 sub-agents healthy", from: "orch" },
-];
+interface LogLine {
+  t: "ok" | "route" | "work" | "head" | "ready";
+  text: string;
+}
+
+type StageState = "pending" | "active" | "done";
 
 export default function AgentGraph() {
-  const [active, setActive] = useState<string | null>(null);
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [running, setRunning] = useState<keyof typeof SCENARIOS | null>(null);
-  const [log, setLog] = useState<LogLine[]>(INITIAL_LOG);
+  const [running, setRunning] = useState<ScenarioId | null>(null);
+  const [stageIdx, setStageIdx] = useState(-1);
+  const [autoCycle, setAutoCycle] = useState(true);
   const [tick, setTick] = useState(0);
+  const [log, setLog] = useState<LogLine[]>([
+    { t: "ready", text: "triage-agent.ready() · 5 specialists · MCP tools loaded" },
+  ]);
 
-  // tick clock for pulsing edges
+  // tick clock for packet pulse
   useEffect(() => {
-    const start = performance.now();
     let raf = 0;
+    const start = performance.now();
     const frame = () => {
       setTick((performance.now() - start) / 1000);
       raf = requestAnimationFrame(frame);
@@ -90,231 +112,157 @@ export default function AgentGraph() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  // scenario player
+  // scenario runner
   useEffect(() => {
     if (!running) return;
-    const steps = SCENARIOS[running];
+    const s = SCENARIOS[running];
+    setLog([{ t: "head", text: `─── triage ${s.sourceLabel} · ${s.ticketKey} ───` }]);
+    setStageIdx(0);
     let i = 0;
-    setLog((l) => [...l.slice(-3), { t: "head", text: `─── run · ${running} ───`, from: "orch" }]);
-    setActive(null);
     const interval = setInterval(() => {
-      const step = steps[i];
+      const step = s.steps[i];
       if (!step) {
         clearInterval(interval);
-        setRunning(null);
-        setActive(null);
+        setStageIdx(STAGES.length);
+        setTimeout(() => {
+          setRunning(null);
+          setStageIdx(-1);
+        }, 2200);
         return;
       }
-      setLog((l) => [...l, step].slice(-9));
-      if (step.from !== "user" && step.from !== "orch") setActive(step.from);
-      else if (step.from === "orch") setActive("orch");
+      const [stage, line] = step;
+      setStageIdx(stage);
+      const txt = line.trim();
+      const tType: LogLine["t"] =
+        txt.startsWith("✓") ? "ok" : txt.startsWith("→") ? "route" : "work";
+      setLog((prev) => [...prev, { t: tType, text: line }].slice(-9));
       i++;
-    }, 600);
+    }, 650);
     return () => clearInterval(interval);
   }, [running]);
 
-  const onRun = (id: keyof typeof SCENARIOS) => { if (!running) setRunning(id); };
+  // auto-cycle: when idle + autoCycle on, schedule next jira run
+  useEffect(() => {
+    if (running || !autoCycle) return;
+    const delay = stageIdx === -1 && log.length <= 1 ? 1500 : 4500;
+    const tm = setTimeout(() => setRunning("jira"), delay);
+    return () => clearTimeout(tm);
+  }, [running, autoCycle, stageIdx, log.length]);
+
+  const stateOf = (i: number): StageState => {
+    if (stageIdx >= STAGES.length) return "done";
+    if (stageIdx < 0) return "pending";
+    if (i < stageIdx) return "done";
+    if (i === stageIdx) return "active";
+    return "pending";
+  };
+
+  const cur = stageIdx >= 0 && stageIdx < STAGES.length ? STAGES[stageIdx] : null;
+  const allDone = stageIdx >= STAGES.length;
+  const stagesDone = Math.max(0, Math.min(stageIdx, STAGES.length));
+  const progress = allDone ? 1 : stageIdx < 0 ? 0 : stagesDone / STAGES.length;
+
+  const phase = !running && stageIdx < 0
+      ? "idle · pick a ticket below to dispatch"
+    : allDone
+      ? "✓ workflow complete · PR opened · comment posted to ticket"
+    : cur
+      ? `${cur.label}.run() · ${cur.sub}`
+      : "starting…";
 
   return (
-    <div className="agent-panel">
-      <PanelHead />
-      <div className="graph">
-        <svg viewBox="0 0 130 100" preserveAspectRatio="xMidYMid meet">
-          <TrustBoundary />
-          {AGENTS.map((a) => (
-            <Edge key={a.id} a={ORCH} b={a} agentId={a.id} active={active} hovered={hovered} tick={tick} />
-          ))}
-          <Node n={ORCH} kind="orch" active={active} hovered={hovered} tick={tick} running={running}
-                setHovered={setHovered} setRunning={setRunning} />
-          {AGENTS.map((a) => (
-            <Node key={a.id} n={a} kind="agent" active={active} hovered={hovered} tick={tick} running={running}
-                  setHovered={setHovered} setRunning={setRunning} />
-          ))}
-        </svg>
+    <div className="agent-panel triage-panel">
+      <div className="panel-head">
+        <span>triage-agent.workflow · ws://internal</span>
+        <span className="lamps">
+          <span className="lamp on" />
+          <span className="lamp on" />
+          <span className={running ? "lamp on" : "lamp"} />
+        </span>
       </div>
+
+      <div className="triage-flow">
+        {STAGES.map((s, i) => {
+          const st = stateOf(i);
+          const prevDone = i > 0 && stateOf(i - 1) === "done";
+          const liveArrow = st === "active" && tick % 1 < 0.5;
+          const arrowCls =
+            "tf-arrow" +
+            (prevDone ? " tf-arrow-done" : "") +
+            (liveArrow ? " tf-arrow-live" : "");
+          return (
+            <Fragment key={s.id}>
+              {i > 0 && (
+                <div className={arrowCls}>
+                  →{liveArrow && <span className="tf-packet" />}
+                </div>
+              )}
+              <div className={`tf-step tf-${st}`}>
+                <div className="tf-icon">
+                  {st === "done" ? "✓" : st === "active" ? "●" : "○"}
+                </div>
+                <div className="tf-role">{s.role}</div>
+                <div className="tf-label">{s.label}</div>
+                <div className="tf-sub">{s.sub}</div>
+                {s.tag && <div className="tf-tag">{s.tag}</div>}
+              </div>
+            </Fragment>
+          );
+        })}
+      </div>
+
+      <div className="triage-flow-foot">
+        <span><span className="tf-phase">{phase}</span></span>
+        <div className="tf-progress">
+          <div className="tf-progress-fill" style={{ width: `${(progress * 100).toFixed(1)}%` }} />
+        </div>
+        <span style={{ color: "var(--ink-faint)", whiteSpace: "nowrap" }}>
+          {stagesDone} / {STAGES.length} stages
+        </span>
+      </div>
+
       <div className="log">
         {log.map((l, i) => (
           <div className="line" key={i}>
             <span className="t">[{String(i).padStart(2, "0")}]</span>{" "}
-            <span className={l.t === "ok" ? "ok" : l.t === "head" ? "a" : ""}>{l.text}</span>
+            <span className={l.t === "ok" ? "ok" : l.t === "head" || l.t === "route" ? "a" : ""}>
+              {l.text}
+            </span>
           </div>
         ))}
       </div>
-      <Controls running={running} onRun={onRun} />
-    </div>
-  );
-}
 
-/* ------------------- subcomponents (kept inline; only used here) ------------------- */
-
-function PanelHead() {
-  return (
-    <div className="panel-head">
-      <span>orchestrator.live · ws://internal</span>
-      <span className="lamps">
-        <span className="lamp on" />
-        <span className="lamp on" />
-        <span className="lamp" />
-      </span>
-    </div>
-  );
-}
-
-function TrustBoundary() {
-  return (
-    <>
-      <rect x="3" y="3" width="124" height="94" fill="none" stroke="var(--rule)" strokeWidth="0.3"
-            strokeDasharray="0.6 1.2" vectorEffect="non-scaling-stroke" />
-      {[[3,3,1],[127,3,2],[3,97,3],[127,97,4]].map(([x, y, k]) => (
-        <g key={k}>
-          <line x1={x} y1={y} x2={x + (k%2===1?5:-5)} y2={y} stroke="var(--accent)" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-          <line x1={x} y1={y} x2={x} y2={y + (k<3?5:-5)} stroke="var(--accent)" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-        </g>
-      ))}
-      <text x="65" y="6.5" textAnchor="middle" fill="var(--ink-faint)" fontSize="2"
-            fontFamily="var(--mono)" style={{ letterSpacing: ".22em" }}>
-        ── ORCHESTRATOR · TRUST BOUNDARY ──
-      </text>
-    </>
-  );
-}
-
-interface EdgeProps {
-  a: AgentNode; b: AgentNode; agentId: string;
-  active: string | null; hovered: string | null; tick: number;
-}
-function Edge({ a, b, agentId, active, hovered, tick }: EdgeProps) {
-  const isActive = active === agentId || active === "orch";
-  const isHovered = hovered === agentId;
-  const dash = isActive ? 12 - (tick * 30) % 12 : 0;
-  return (
-    <g>
-      <line
-        x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-        stroke={isActive || isHovered ? "var(--accent)" : "var(--rule-2)"}
-        strokeWidth={isActive ? 0.6 : 0.3}
-        strokeDasharray={isActive ? "2 1.5" : "0.6 1.4"}
-        strokeDashoffset={dash * 0.3}
-        opacity={isActive ? 1 : 0.7}
-        vectorEffect="non-scaling-stroke"
-      />
-      {isActive && (
-        <circle
-          cx={a.x + (b.x - a.x) * ((tick * 0.35) % 1)}
-          cy={a.y + (b.y - a.y) * ((tick * 0.35) % 1)}
-          r="0.9"
-          fill="var(--accent)"
-        />
-      )}
-    </g>
-  );
-}
-
-interface NodeProps {
-  n: AgentNode;
-  kind: "orch" | "agent";
-  active: string | null;
-  hovered: string | null;
-  tick: number;
-  running: string | null;
-  setHovered: (id: string | null) => void;
-  setRunning: (id: keyof typeof SCENARIOS) => void;
-}
-function Node({ n, kind, active, hovered, tick, running, setHovered, setRunning }: NodeProps) {
-  const isActive = active === n.id;
-  const isHovered = hovered === n.id;
-  const stroke = isActive ? "var(--accent)" : isHovered ? "var(--ink)" : "var(--rule-2)";
-  const fill = isActive ? "var(--accent-soft)" : "rgba(15,17,15,.92)";
-  const w = kind === "orch" ? 30 : 24;
-  const h = 9;
-  const x = n.x - w / 2;
-  const y = n.y - h / 2;
-
-  const onClick = () => {
-    if (running) return;
-    setRunning(n.id === "orch" ? "all" : (n.id as keyof typeof SCENARIOS));
-  };
-
-  return (
-    <g
-      style={{ cursor: "pointer" }}
-      onMouseEnter={() => setHovered(n.id)}
-      onMouseLeave={() => setHovered(null)}
-      onClick={onClick}
-    >
-      {isActive && (
-        <rect
-          x={x - 1.4} y={y - 1.4} width={w + 2.8} height={h + 2.8}
-          fill="none" stroke="var(--accent)" strokeWidth="0.3"
-          opacity={0.4 + Math.sin(tick * 4) * 0.3}
-          vectorEffect="non-scaling-stroke"
-        />
-      )}
-      <rect x={x - 3} y={y - 3} width={w + 6} height={h + 6} fill="transparent" />
-      <rect x={x} y={y} width={w} height={h} fill={fill} stroke={stroke} strokeWidth="0.4"
-            vectorEffect="non-scaling-stroke" />
-      {[[-1,-1],[1,-1],[-1,1],[1,1]].map(([sx, sy], idx) => {
-        const cx = n.x + sx * (w / 2);
-        const cy = n.y + sy * (h / 2);
-        return (
-          <g key={idx}>
-            <line x1={cx} y1={cy} x2={cx - sx * 2} y2={cy}
-              stroke={isActive ? "var(--accent)" : "var(--ink-dim)"} strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-            <line x1={cx} y1={cy} x2={cx} y2={cy - sy * 1.4}
-              stroke={isActive ? "var(--accent)" : "var(--ink-dim)"} strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-          </g>
-        );
-      })}
-      <text
-        x={n.x} y={n.y + 0.6}
-        textAnchor="middle" dominantBaseline="middle"
-        fill={isActive ? "var(--accent)" : "var(--ink)"}
-        fontSize="2.6"
-        fontFamily="var(--mono)"
-        style={{ letterSpacing: ".02em", pointerEvents: "none" }}
-      >
-        {n.label}
-      </text>
-      {kind === "orch" ? (
-        <text x={n.x} y={n.y - h / 2 - 2.2} textAnchor="middle" fill="var(--ink-faint)" fontSize="1.9"
-              fontFamily="var(--mono)" style={{ letterSpacing: ".12em", pointerEvents: "none" }}>
-          ROOT · CLICK TO RUN ALL
-        </text>
-      ) : (
-        <text x={n.x} y={n.y + h / 2 + 3.2} textAnchor="middle"
-              fill={isHovered ? "var(--ink)" : "var(--ink-faint)"} fontSize="2.2"
-              fontFamily="var(--mono)" style={{ letterSpacing: ".04em", pointerEvents: "none" }}>
-          {n.scope}
-        </text>
-      )}
-    </g>
-  );
-}
-
-function Controls({ running, onRun }: { running: string | null; onRun: (id: keyof typeof SCENARIOS) => void }) {
-  const buttons = useMemo(() => ([
-    { id: "a1" as const,  label: "▸ run sub_agent_1" },
-    { id: "a2" as const,  label: "▸ run sub_agent_2" },
-    { id: "a3" as const,  label: "▸ run sub_agent_3" },
-  ]), []);
-  return (
-    <div className="agent-controls">
-      {buttons.map((b) => (
+      <div className="agent-controls">
         <button
-          key={b.id}
-          className={running === b.id ? "running" : ""}
-          onClick={() => onRun(b.id)}
+          className={running === "jira" ? "running" : ""}
+          onClick={() => !running && setRunning("jira")}
         >
-          {b.label}
+          ▸ triage JIRA · SKLR-1284
         </button>
-      ))}
-      <button
-        className={running === "all" ? "running" : ""}
-        onClick={() => onRun("all")}
-        style={{ marginLeft: "auto" }}
-      >
-        ▸ orchestrate all
-      </button>
+        <button
+          className={running === "linear" ? "running" : ""}
+          onClick={() => !running && setRunning("linear")}
+        >
+          ▸ triage LINEAR · ENG-42
+        </button>
+        <button
+          style={{ marginLeft: "auto" }}
+          disabled={!running && !autoCycle}
+          onClick={() => {
+            if (running) {
+              setRunning(null);
+              setStageIdx(-1);
+              setLog((l) => [...l, { t: "ok", text: "■ session terminated" }].slice(-9));
+            }
+            setAutoCycle(false);
+          }}
+        >
+          {running ? "■ stop" : autoCycle ? "■ pause auto" : "□ idle"}
+        </button>
+        {!autoCycle && !running && (
+          <button onClick={() => setAutoCycle(true)}>▶ resume auto</button>
+        )}
+      </div>
     </div>
   );
 }
