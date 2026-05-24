@@ -54,7 +54,7 @@ export const experiences: Experience[] = [
     body:
       "Supervised and mentored final-year BSc IT cohorts across a portfolio of capstone projects — guiding teams from problem framing through architecture, implementation, and defence.",
     bullets: [
-      "Led ~12 student teams across diverse domains: blockchain voting systems, AI-driven recommendation engines for medical / logistics / mental-health sectors, and full-stack web platforms.",
+      "Led ~15 student teams across diverse domains: blockchain voting systems, AI-driven recommendation engines for medical / logistics / mental-health sectors, and full-stack web platforms.",
       "Reviewed architecture decisions, code quality, and engineering trade-offs — pushing teams to make their decisions explicit and defendable rather than accidental.",
       "Ran weekly working sessions on agentic patterns (planner + tool-using sub-agents), data modelling, and shipping production-grade UX on student-team timelines.",
     ],
