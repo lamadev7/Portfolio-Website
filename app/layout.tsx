@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Parbat Lama — Senior Full-Stack TypeScript Engineer",
   description:
     "Portfolio of Parbat Lama. Senior full-stack TypeScript engineer based in Lalitpur, Nepal — production React, Node, and agentic systems.",
-  metadataBase: new URL("https://lamaparbat.com.np"),
+  metadataBase: new URL("https://parbatlama.vercel.app"),
   openGraph: {
     title: "Parbat Lama — Senior Full-Stack TypeScript Engineer",
     description:
