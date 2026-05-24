@@ -4,12 +4,12 @@ import { useEffect } from "react";
 import TweaksPanel, { TweakSection, TweakColor, TweakRadio, TweakToggle } from "./TweaksPanel";
 import { useTweaks } from "@/lib/tweaks/use-tweaks";
 
-interface Tweaks {
+type Tweaks = {
   accent: string;
   density: "tight" | "regular" | "loose";
   scanlines: boolean;
   scene: "workstation" | "minimal";
-}
+};
 
 const DEFAULTS: Tweaks = {
   accent: "#c8ff2c",

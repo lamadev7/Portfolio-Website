@@ -304,7 +304,7 @@ function makePython(): THREE.Group {
     const grp = new THREE.Group();
     const cap = "CapsuleGeometry" in THREE
       ? new (THREE as any).CapsuleGeometry(0.14, 0.5, 6, 16)
-      : new THREE.CylinderGeometry(0.14, 0.14, 0.7, 16);
+      : new (THREE as any).CylinderGeometry(0.14, 0.14, 0.7, 16);
     const body = new THREE.Mesh(cap, new THREE.MeshPhongMaterial({ color, shininess: 60 }));
     body.position.set(0, 0.18, 0);
     grp.add(body);

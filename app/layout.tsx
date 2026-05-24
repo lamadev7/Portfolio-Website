@@ -9,7 +9,7 @@ const jetbrains = JetBrains_Mono({
   variable: "--mono-font",
 });
 
-const SITE_URL = "https://lamaparbat.com.np";
+const SITE_URL = "https://https://parbatlama.vercel.app/";
 const TITLE = "Parbat Lama — Senior Full-Stack TypeScript Engineer";
 const DESCRIPTION =
   "Senior full-stack TypeScript engineer based in Lalitpur, Nepal. Production React, Node, and agentic systems — building Triage Agent, ADK multi-agent services, and brutalist developer tools.";
