@@ -28,7 +28,7 @@ export default function EduHonors() {
               marginBottom: 14,
             }}
           >
-            // 05 — Honors
+            {"// 05 — Honors"}
           </div>
           <h4>AAA Scholarship</h4>
           <div className="honor-meta">Academic · Attitude · Attendance</div>
