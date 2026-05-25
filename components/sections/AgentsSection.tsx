@@ -32,7 +32,7 @@ export default function AgentsSection() {
             surviving crashes.
           </p>
           <p style={{ color: "var(--ink-faint)", fontSize: 12, marginTop: -4 }}>
-            // not a chatbot. an end-to-end workflow.
+            {'// not a chatbot. an end-to-end workflow.'}
           </p>
 
           <ul style={{ margin: "10px 0 14px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>

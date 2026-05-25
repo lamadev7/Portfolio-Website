@@ -98,8 +98,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={jetbrains.variable}>
-      <body>{children}</body>
-      <Analytics/> 
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
