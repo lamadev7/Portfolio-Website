@@ -10,6 +10,7 @@ export interface ExperienceStack {
 
 export interface Experience {
   when: string;
+  /** Either a fixed string, or {start,end} to compute "N yrs M mos" live. */
   dur: string;
   title: string;
   at: string;
@@ -19,10 +20,28 @@ export interface Experience {
   stack: ExperienceStack[];
 }
 
+/**
+ * Real-time duration helper — months between two dates as "N yrs M mos".
+ * `end` omitted ⇒ now (so ongoing roles grow over time on each render).
+ */
+export function fmtDuration(start: Date, end?: Date): string {
+  const e = end ?? new Date();
+  let months =
+    (e.getFullYear() - start.getFullYear()) * 12 + (e.getMonth() - start.getMonth());
+  if (e.getDate() < start.getDate()) months -= 1;
+  months = Math.max(0, months);
+  const yrs = Math.floor(months / 12);
+  const mos = months % 12;
+  const parts: string[] = [];
+  if (yrs > 0) parts.push(`${yrs} ${yrs === 1 ? "yr" : "yrs"}`);
+  if (mos > 0) parts.push(`${mos} ${mos === 1 ? "mo" : "mos"}`);
+  return parts.length ? parts.join(" ") : "0 mos";
+}
+
 export const experiences: Experience[] = [
   {
-    when: "Jul 2022 → Present",
-    dur: "3 yrs 11 mos · Full-time · On-site",
+    when: "Jun 2022 → Present",
+    dur: `${fmtDuration(new Date(2022, 5, 1))} · Full-time · On-site`,
     title: "Senior Full-Stack Engineer",
     at: "PortPro",
     role: "Lalitpur, Nepal",
@@ -47,14 +66,14 @@ export const experiences: Experience[] = [
   },
   {
     when: "Aug 2025 → Apr 2026",
-    dur: "9 mos · Part-time · On-site",
+    dur: `${fmtDuration(new Date(2025, 7, 1), new Date(2026, 3, 1))} · Part-time · On-site`,
     title: "Final Year Project Supervisor",
     at: "Herald College Kathmandu",
     role: "Kathmandu, Nepal",
     body:
       "Supervised and mentored final-year BSc IT cohorts across a portfolio of capstone projects — guiding teams from problem framing through architecture, implementation, and defence.",
     bullets: [
-      "Led ~15 student teams across diverse domains: blockchain voting systems, AI-driven recommendation engines for medical / logistics / mental-health sectors, and full-stack web platforms.",
+      "Led ~12 student teams across diverse domains: blockchain voting systems, AI-driven recommendation engines for medical / logistics / mental-health sectors, and full-stack web platforms.",
       "Reviewed architecture decisions, code quality, and engineering trade-offs — pushing teams to make their decisions explicit and defendable rather than accidental.",
       "Ran weekly working sessions on agentic patterns (planner + tool-using sub-agents), data modelling, and shipping production-grade UX on student-team timelines.",
     ],
@@ -68,7 +87,7 @@ export const experiences: Experience[] = [
   },
   {
     when: "Jan 2022 → Jul 2022",
-    dur: "7 mos · Full-time · Remote",
+    dur: `${fmtDuration(new Date(2022, 0, 1), new Date(2022, 6, 1))} · Full-time · Remote`,
     title: "Frontend Developer",
     at: "Princelab Pvt. Ltd.",
     role: "Kathmandu, Nepal",

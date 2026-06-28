@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const jetbrains = JetBrains_Mono({
@@ -10,7 +9,7 @@ const jetbrains = JetBrains_Mono({
   variable: "--mono-font",
 });
 
-const SITE_URL = "https://https://parbatlama.vercel.app/";
+const SITE_URL = "https://lamaparbat.com.np";
 const TITLE = "Parbat Lama — Senior Full-Stack TypeScript Engineer";
 const DESCRIPTION =
   "Senior full-stack TypeScript engineer based in Lalitpur, Nepal. Production React, Node, and agentic systems — building Triage Agent, ADK multi-agent services, and brutalist developer tools.";
@@ -99,7 +98,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={jetbrains.variable}>
       <body>{children}</body>
-      <Analytics/> 
     </html>
   );
 }

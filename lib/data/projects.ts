@@ -19,10 +19,7 @@ export const projects: WorkProject[] = [
     name: "Technical Report Reviewer",
     pitch:
       "AI-assisted student report reviewer. Upload templates + good/bad samples; Claude flags critical & major issues with hover popovers, the reviewer edits/approves, then emails feedback with inline screenshots.",
-    stack: [
-      "Next.js 16", "React 19", "TypeScript", "Tailwind 4",
-      "Claude Sonnet 4.6", "Postgres + Prisma", "Resend", "Playwright",
-    ],
+    stack: ["Next.js", "TypeScript", "LLM Agents", "Postgres + Prisma", "Playwright"],
     highlight:
       "Prompt caching cuts ~90% off input cost for batches of reports against the same knowledge base.",
     href: "https://github.com/lamadev7/technical-report-reviewer-agent",
@@ -31,14 +28,14 @@ export const projects: WorkProject[] = [
     id: "02",
     year: "2025",
     role: "Solo",
-    slot: "adk_ai_agents",
-    name: "ADK Multi-Agent Service",
+    slot: "job_apply_scout",
+    name: "Job Apply Scout",
     pitch:
-      "Orchestrator architecture in Google ADK: a general orchestrator LlmAgent routes work to specialised sub-agents (mental health, orthopedic) over A2A + MCP tools, served from a FastAPI backend.",
-    stack: ["Python", "FastAPI", "Google ADK", "Gemini", "Anthropic", "OpenAI", "MCP", "A2A"],
+      "An AI job-hunt agent that reads your resume, scans LinkedIn & Indeed in a live headed browser, and ranks every posting against your skills with deterministic, traceable matching — a focused shortlist, not a wall of listings. It scores; it never auto-applies.",
+    stack: ["Next.js 16", "React 19", "TypeScript", "LLM Agents", "Playwright", "Prisma + SQLite"],
     highlight:
-      "Pluggable agent layout — drop a folder in /agents and the ADK web UI + A2A discovery picks it up.",
-    href: "https://github.com/lamadev7/adk-ai-agents",
+      "Match % comes from skill set-intersection, not an LLM guess — reproducible and explainable. The model only reads the resume; it never invents the numbers.",
+    href: "https://github.com/lamadev7/Job-Apply-Scout",
   },
   {
     id: "03",
@@ -61,7 +58,7 @@ export const projects: WorkProject[] = [
     name: "SkillReal — Payload CMS",
     pitch:
       "Headless CMS backend for SkillReal — content modelling, auth, media, and admin tooling powering the product surfaces.",
-    stack: ["Payload CMS", "Node.js", "TypeScript", "MongoDB"],
+    stack: ["Payload CMS", "TypeScript", "Node.js", "MongoDB"],
     highlight:
       "Schema-first content modelling with the Payload admin auto-generating the editor UI.",
     href: "https://github.com/SkillReal-LTD/skillreal-payload",
@@ -70,27 +67,11 @@ export const projects: WorkProject[] = [
     id: "05",
     year: "2023",
     role: "Solo",
-    slot: "ig_react_native",
-    name: "Instagram Clone — RN",
-    pitch:
-      "Instagram-style mobile app in React Native + Expo — feed, photo posts, profile, navigation — built as a deep-dive into RN ergonomics.",
-    stack: ["React Native", "Expo", "TypeScript"],
-    highlight:
-      "Native-feeling feed list + image pipelines optimised for low-end Android.",
-    href: "https://github.com/lamadev7/ig-react-native",
-  },
-  {
-    id: "06",
-    year: "2023",
-    role: "Solo",
     slot: "blockchain_election_dapp",
     name: "Blockchain Election dApp",
     pitch:
       "Decentralised voting system on Ethereum — voter registration + verification, ballot creation, on-chain vote casting via MetaMask, and tamper-proof result tabulation. Live at dappvote.vercel.app.",
-    stack: [
-      "Solidity", "Hardhat", "Truffle", "Web3.js",
-      "Next.js", "TypeScript", "Express", "MongoDB", "Tailwind", "MetaMask",
-    ],
+    stack: ["Solidity", "Hardhat", "Web3.js", "Next.js", "Express", "MongoDB"],
     highlight:
       "Clean-architecture Node backend in front of the smart contract; Express clustered with PM2; Jest + Supertest coverage across the API layer.",
     href: "https://github.com/lamaparbat/BLOCKCHAIN-ELECTION-DAPP",

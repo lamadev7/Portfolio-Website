@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
  * CommandLine — animated terminal prompt that types + erases a rotating
  * list of fake commands. Marked "use client" because it owns animation state.
  */
-const COMMANDS = ["whoami", "cat ./now.txt", "ls ./agents/", "ssh portpro.internal"];
+const COMMANDS = ["whoami", "cat ./now.txt", "ls ./agents/", "ssh edge.lab"];
 const TYPE_MS = 70;
 const ERASE_MS = 30;
 const HOLD_MS = 1500;

@@ -1,1 +1,0 @@
-self.__REACT_LOADABLE_MANIFEST="{\"components/scene/SceneLoader.tsx -> ./Scene\":{\"id\":\"components/scene/SceneLoader.tsx -> ./Scene\",\"files\":[\"static/chunks/_app-pages-browser_components_scene_Scene_tsx.js\"]}}"
