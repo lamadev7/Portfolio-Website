@@ -621,6 +621,9 @@ section:first-of-type { border-top: 0; }
   border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
 }
+
+/* ============================================================
+   TRIAGE FLOW
    7-stage pipeline that auto-advances. Pure CSS + minimal React state.
    ============================================================ */
 .triage-flow-wrap {

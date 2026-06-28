@@ -252,7 +252,7 @@ export default function AgentGraph() {
             if (running) {
               setRunning(null);
               setStageIdx(-1);
-              setLog((l) => [...l, { t: "ok", text: "■ session terminated" }].slice(-9));
+              setLog((l) => [...l, { t: "ok" as const, text: "■ session terminated" }].slice(-9));
             }
             setAutoCycle(false);
           }}
